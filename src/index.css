@@ -1,0 +1,61 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", "Helvetica Neue", Arial, sans-serif;
+  
+  --color-bg-app: #F1F3F6;
+  --color-bg-card: #FFFFFF;
+  --color-primary-blue: #3B82F6;
+  --color-text-main: #1F2937;
+  --color-text-sub: #6B7280;
+  --color-border-gray: #E5E7EB;
+  --color-accent-blue: #EFF6FF;
+
+  --color-background: var(--color-bg-app);
+  --color-foreground: var(--color-text-main);
+  
+  --color-card: var(--color-bg-card);
+  --color-card-foreground: var(--color-text-main);
+  
+  --color-popover: var(--color-bg-card);
+  --color-popover-foreground: var(--color-text-main);
+  
+  --color-primary: var(--color-primary-blue);
+  --color-primary-foreground: #ffffff;
+  
+  --color-secondary: var(--color-accent-blue);
+  --color-secondary-foreground: var(--color-primary-blue);
+  
+  --color-muted: var(--color-bg-app);
+  --color-muted-foreground: var(--color-text-sub);
+  
+  --color-accent: var(--color-accent-blue);
+  --color-accent-foreground: var(--color-primary-blue);
+  
+  --color-destructive: #ef4444;
+  
+  --color-border: var(--color-border-gray);
+  --color-input: var(--color-border-gray);
+  --color-ring: var(--color-primary-blue);
+  
+  --radius-lg: 12px;
+  --radius-md: 10px;
+  --radius-sm: 6px;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground font-sans antialiased cursor-none;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-sans font-bold tracking-tight;
+  }
+  a, button, [role="button"] {
+    @apply cursor-none;
+  }
+}
+
