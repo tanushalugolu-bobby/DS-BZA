@@ -7,6 +7,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import Sidebar from './components/Sidebar';
 import DirectoryPage from './components/DirectoryPage';
 import MemberDetailsPage from './components/MemberDetailsPage';
+import Settings from './components/Settings';
 import LiveWallpaper from './components/LiveWallpaper';
 import CustomCursor from './components/CustomCursor';
 import { DirectoryProvider } from './DirectoryContext';
@@ -15,12 +16,12 @@ export default function App() {
   return (
     <DirectoryProvider>
       <Router>
-        <div className="flex bg-transparent min-h-screen relative cursor-none">
+        <div className="flex bg-transparent min-h-screen relative cursor-none md:cursor-auto">
           <CustomCursor />
           <LiveWallpaper />
           <Sidebar />
-          <div className="flex-1 flex flex-col relative z-10">
-            <main className="flex-grow">
+          <div className="flex-1 flex flex-col relative z-10 w-full overflow-x-hidden">
+            <main className="flex-grow pt-16 md:pt-0">
               <Routes>
                 <Route path="/" element={<Navigate to="/staff" replace />} />
                 <Route 
@@ -43,6 +44,7 @@ export default function App() {
                     />
                   } 
                 />
+                <Route path="/settings" element={<Settings />} />
                 <Route path="/:type/:id" element={<MemberDetailsPage />} />
               </Routes>
             </main>

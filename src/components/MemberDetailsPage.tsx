@@ -1,18 +1,75 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Member } from '@/src/data';
-import { motion, useMotionValue, useSpring, useTransform } from 'motion/react';
-import { ArrowLeft, Edit2, Save, X, Plus, Trash2, MessageCircle } from 'lucide-react';
+import { motion, useMotionValue, useSpring, useTransform, AnimatePresence } from 'motion/react';
+import { ArrowLeft, Edit2, Save, X, Plus, Trash2, MessageCircle, Upload, Download, FileJson, Table, FileSpreadsheet } from 'lucide-react';
 import { useDirectory } from '@/src/DirectoryContext';
+import { exportToCSV, exportToXLSX } from '../lib/exportUtils';
 
 export default function MemberDetailsPage() {
   const { type, id } = useParams<{ type: string; id: string }>();
   const navigate = useNavigate();
-  const { staff, dogs, updateMember, deleteMember } = useDirectory();
+  const { staff, dogs, isLoaded, updateMember, deleteMember } = useDirectory();
   const [member, setMember] = useState<Member | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [editedMember, setEditedMember] = useState<Member | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showExportOptions, setShowExportOptions] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleExport = (format: 'csv' | 'xlsx') => {
+    if (!member) return;
+    const fileName = `${member.pfNumber}_${member.name.replace(/\s+/g, '_')}`;
+    const dataForExport = [{
+      'PF Number': member.pfNumber,
+      Name: member.name,
+      Role: member.role,
+      Bio: member.bio,
+      ...Object.fromEntries(member.details.map(d => [d.label, d.value]))
+    }];
+
+    if (format === 'csv') exportToCSV(dataForExport, fileName);
+    else if (format === 'xlsx') exportToXLSX(dataForExport, fileName);
+    
+    setShowExportOptions(false);
+  };
+
+  const handleDocumentUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file && editedMember) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const newDoc = {
+          name: file.name,
+          url: reader.result as string,
+          date: new Date().toISOString()
+        };
+        setEditedMember({
+          ...editedMember,
+          documents: [...editedMember.documents, newDoc]
+        });
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const removeDocument = (index: number) => {
+    if (editedMember) {
+      const newDocs = editedMember.documents.filter((_, i) => i !== index);
+      setEditedMember({ ...editedMember, documents: newDocs });
+    }
+  };
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file && editedMember) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        handleInputChange('image', reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   const shareToWhatsApp = () => {
     if (!member) return;
@@ -33,15 +90,35 @@ export default function MemberDetailsPage() {
   const rotateY = useTransform(mouseXSpring, [-0.5, 0.5], ["-15deg", "15deg"]);
 
   useEffect(() => {
+    if (!isLoaded) return;
+
     const list = type === 'staff' ? staff : dogs;
     const found = list.find(m => m.id === id);
     if (found) {
       setMember(found);
       setEditedMember(found);
     } else {
-      navigate(`/${type || 'staff'}`);
+      const timeout = setTimeout(() => {
+        navigate(`/${type || 'staff'}`);
+      }, 500);
+      return () => clearTimeout(timeout);
     }
-  }, [type, id, staff, dogs, navigate]);
+  }, [type, id, staff, dogs, isLoaded, navigate]);
+
+  if (!isLoaded) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-bg-app">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-12 ml-1 text-primary animate-pulse flex items-center gap-2">
+             <div className="w-3 h-3 bg-primary rounded-full animate-bounce [animation-delay:-0.3s]"></div>
+             <div className="w-3 h-3 bg-primary rounded-full animate-bounce [animation-delay:-0.15s]"></div>
+             <div className="w-3 h-3 bg-primary rounded-full animate-bounce"></div>
+          </div>
+          <p className="text-xs font-bold text-text-sub uppercase tracking-widest">Loading Records...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!member || !editedMember) return null;
 
@@ -109,8 +186,8 @@ export default function MemberDetailsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-white/60 backdrop-blur-lg border-l border-border flex flex-col p-8 md:p-12 overflow-y-auto relative z-10">
-      <div className="flex justify-between items-center mb-12">
+    <div className="min-h-screen bg-white/60 backdrop-blur-lg border-l border-border flex flex-col p-4 md:p-12 overflow-y-auto relative z-10">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6 mb-12">
         <Link 
           to={`/${type}`} 
           className="inline-flex items-center gap-2 text-text-sub hover:text-primary transition-colors group"
@@ -119,48 +196,87 @@ export default function MemberDetailsPage() {
           <span className="text-sm font-medium">Back to Directory</span>
         </Link>
 
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2 w-full sm:w-auto">
           {isEditing ? (
             <button 
               onClick={() => setIsEditing(false)}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-bg-app text-text-main hover:bg-accent hover:text-primary transition-all font-medium text-sm"
+              className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-bg-app text-text-main hover:bg-accent hover:text-primary transition-all font-medium text-sm border border-border/50"
             >
               <X size={16} /> Cancel
             </button>
           ) : showDeleteConfirm ? (
-            <div className="flex gap-2 animate-in fade-in slide-in-from-right-4 duration-300">
+            <div className="flex gap-2 w-full sm:w-auto animate-in fade-in slide-in-from-right-4 duration-300">
               <button 
                 onClick={confirmDelete}
-                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700 transition-all font-bold text-sm shadow-lg shadow-red-200"
+                className="flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700 transition-all font-bold text-sm shadow-lg shadow-red-200"
               >
-                <Trash2 size={16} /> Confirm Delete
+                <Trash2 size={16} /> Confirm
               </button>
               <button 
                 onClick={cancelDelete}
-                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-bg-app text-text-main hover:bg-accent transition-all font-medium text-sm"
+                className="flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-bg-app text-text-main hover:bg-accent transition-all font-medium text-sm border border-border/50"
               >
                 Cancel
               </button>
             </div>
           ) : (
             <>
+              <div className="relative flex-1 sm:flex-none">
+                <button 
+                  onClick={() => setShowExportOptions(!showExportOptions)}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-white border border-border text-text-sub hover:bg-bg-app transition-all font-medium text-sm"
+                >
+                  <Download size={16} /> Export
+                </button>
+                
+                <AnimatePresence>
+                  {showExportOptions && (
+                    <>
+                      <div 
+                        className="fixed inset-0 z-40" 
+                        onClick={() => setShowExportOptions(false)}
+                      />
+                      <motion.div 
+                        initial={{ opacity: 0, scale: 0.95, y: 5 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.95, y: 5 }}
+                        className="absolute right-0 bottom-full mb-2 w-48 bg-white border border-border rounded-xl shadow-xl z-50 overflow-hidden"
+                      >
+                        <button 
+                          onClick={() => handleExport('xlsx')}
+                          className="w-full flex items-center gap-3 px-4 py-3 text-sm hover:bg-bg-app transition-colors text-left font-medium"
+                        >
+                          <FileSpreadsheet size={16} className="text-green-600" /> Excel (.xlsx)
+                        </button>
+                        <button 
+                          onClick={() => handleExport('csv')}
+                          className="w-full flex items-center gap-3 px-4 py-3 text-sm hover:bg-bg-app transition-colors text-left font-medium border-t border-border/30"
+                        >
+                          <FileJson size={16} className="text-gray-600" /> CSV Format
+                        </button>
+                      </motion.div>
+                    </>
+                  )}
+                </AnimatePresence>
+              </div>
+
               <button 
                 onClick={handleDeleteClick}
-                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 transition-all font-medium text-sm"
+                className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 transition-all font-medium text-sm"
               >
                 <Trash2 size={16} /> Delete
               </button>
               <button 
                 onClick={shareToWhatsApp}
-                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-green-50 text-green-600 hover:bg-green-100 transition-all font-medium text-sm"
+                className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-green-50 text-green-600 hover:bg-green-100 transition-all font-medium text-sm"
               >
                 <MessageCircle size={16} /> Share
               </button>
               <button 
                 onClick={() => setIsEditing(true)}
-                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-bg-app text-text-main hover:bg-accent hover:text-primary transition-all font-medium text-sm"
+                className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-bg-app text-text-main hover:bg-accent hover:text-primary transition-all font-medium text-sm border border-border/50"
               >
-                <Edit2 size={16} /> Edit Profile
+                <Edit2 size={16} /> Edit
               </button>
             </>
           )}
@@ -189,14 +305,35 @@ export default function MemberDetailsPage() {
             </motion.div>
             
             {isEditing && (
-              <div className="w-full space-y-2">
-                <label className="text-[10px] uppercase font-bold text-text-sub">Image URL</label>
-                <input 
-                  type="text" 
-                  value={editedMember.image}
-                  onChange={(e) => handleInputChange('image', e.target.value)}
-                  className="w-full p-2 text-xs border border-border rounded-md focus:ring-1 focus:ring-primary outline-none"
-                />
+              <div className="w-full space-y-4">
+                <div className="space-y-2">
+                  <label className="text-[10px] uppercase font-bold text-text-sub">Profile Image</label>
+                  <div className="flex gap-2">
+                    <button 
+                      onClick={() => fileInputRef.current?.click()}
+                      className="flex-1 flex items-center justify-center gap-2 p-2 bg-primary text-white rounded-lg text-xs font-bold hover:bg-primary/90 transition-all shadow-sm"
+                    >
+                      <Upload size={14} /> Upload Local
+                    </button>
+                    <input 
+                      type="file" 
+                      ref={fileInputRef}
+                      onChange={handleImageUpload}
+                      accept="image/*"
+                      className="hidden"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] uppercase font-bold text-text-sub text-center block">Or Image URL</label>
+                  <input 
+                    type="text" 
+                    value={editedMember.image}
+                    onChange={(e) => handleInputChange('image', e.target.value)}
+                    className="w-full p-2 text-xs border border-border rounded-md focus:ring-1 focus:ring-primary outline-none"
+                    placeholder="https://..."
+                  />
+                </div>
               </div>
             )}
           </div>
@@ -231,10 +368,29 @@ export default function MemberDetailsPage() {
                   animate={{ opacity: 1, x: 0 }}
                 >
                   <h1 className="text-4xl font-bold text-text-main mb-1">{member.name}</h1>
-                  <p className="text-lg text-text-sub">{member.role}</p>
+                  <div className="flex items-center gap-3 mb-2">
+                    <span className="text-lg text-text-sub font-medium">{member.role}</span>
+                    <span className="px-3 py-1 bg-primary/10 text-primary text-[10px] font-bold rounded-full border border-primary/20 uppercase tracking-wider">
+                      PF: {member.pfNumber}
+                    </span>
+                  </div>
                 </motion.div>
               )}
             </div>
+
+            {/* PF Number Editing */}
+            {isEditing && (
+              <div className="space-y-1">
+                <label className="text-[10px] uppercase font-bold text-text-sub">PF Number</label>
+                <input 
+                  type="text" 
+                  value={editedMember.pfNumber}
+                  onChange={(e) => handleInputChange('pfNumber', e.target.value)}
+                  placeholder="24409813***"
+                  className="w-full p-2 border border-border rounded-lg focus:ring-2 focus:ring-primary outline-none font-mono text-sm"
+                />
+              </div>
+            )}
 
             {/* Bio Table Form */}
             <motion.div
@@ -328,6 +484,76 @@ export default function MemberDetailsPage() {
                   </tr>
                 </tbody>
               </table>
+            </motion.div>
+
+            {/* Related Documents Section */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+              className="space-y-4"
+            >
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-bold text-text-main flex items-center gap-2">
+                  <Table size={20} className="text-primary" />
+                  Related Documents
+                </h3>
+                {isEditing && (
+                  <label className="cursor-pointer flex items-center gap-2 px-3 py-1.5 bg-bg-app border border-border rounded-lg text-xs font-bold hover:bg-accent transition-all">
+                    <Plus size={14} /> Add Document
+                    <input 
+                      type="file" 
+                      className="hidden" 
+                      onChange={handleDocumentUpload}
+                      accept=".pdf,.doc,.docx,.jpg,.png"
+                    />
+                  </label>
+                )}
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {editedMember.documents.length > 0 ? (
+                  editedMember.documents.map((doc, idx) => (
+                    <div 
+                      key={idx}
+                      className="group p-4 bg-white border border-border rounded-xl flex items-center justify-between hover:border-primary/50 transition-all shadow-sm"
+                    >
+                      <div className="flex items-center gap-3 overflow-hidden">
+                        <div className="p-2 bg-accent rounded-lg text-primary">
+                          <Table size={16} />
+                        </div>
+                        <div className="overflow-hidden">
+                          <p className="text-xs font-bold text-text-main truncate">{doc.name}</p>
+                          <p className="text-[9px] text-text-sub">{new Date(doc.date).toLocaleDateString()}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <a 
+                          href={doc.url} 
+                          download={doc.name}
+                          className="p-2 text-text-sub hover:text-primary transition-colors"
+                          title="Download"
+                        >
+                          <Download size={14} />
+                        </a>
+                        {isEditing && (
+                          <button 
+                            onClick={() => removeDocument(idx)}
+                            className="p-2 text-red-400 hover:text-red-500 transition-colors"
+                            title="Remove"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="sm:col-span-2 p-8 border-2 border-dashed border-border rounded-2xl flex flex-col items-center justify-center text-text-sub">
+                    <label className="text-xs font-medium">No documents uploaded yet.</label>
+                  </div>
+                )}
+              </div>
             </motion.div>
 
             {isEditing && (

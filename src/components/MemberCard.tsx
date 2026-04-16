@@ -6,12 +6,10 @@ import { Link, useLocation } from 'react-router-dom';
 
 interface MemberCardProps {
   member: Member;
+  type: 'staff' | 'dogs';
 }
 
-export default function MemberCard({ member }: MemberCardProps) {
-  const location = useLocation();
-  const type = location.pathname.includes('staff') ? 'staff' : 'dogs';
-
+export default function MemberCard({ member, type }: MemberCardProps) {
   // Get initials for avatar fallback
   const initials = member.name.split(' ').map(n => n[0]).join('').toUpperCase();
 
@@ -35,6 +33,7 @@ export default function MemberCard({ member }: MemberCardProps) {
             <span className="absolute">{initials}</span>
           </div>
           <CardContent className="p-0">
+            <p className="text-[9px] font-bold text-primary/70 mb-1 font-mono uppercase tracking-tighter">PF: {member.pfNumber}</p>
             <h3 className="text-sm font-semibold text-text-main mb-1">{member.name}</h3>
             <p className="text-[12px] text-text-sub">{member.role}</p>
           </CardContent>
