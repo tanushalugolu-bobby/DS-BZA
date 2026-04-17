@@ -10,7 +10,7 @@ interface MemberCardProps {
 }
 
 export default function MemberCard({ member, type }: MemberCardProps) {
-  // Get initials for avatar fallback
+  const [imageError, setImageError] = React.useState(false);
   const initials = member.name.split(' ').map(n => n[0]).join('').toUpperCase();
 
   return (
@@ -20,17 +20,18 @@ export default function MemberCard({ member, type }: MemberCardProps) {
         transition={{ duration: 0.2 }}
       >
         <Card className="bg-white/70 backdrop-blur-sm rounded-xl p-4 flex flex-col items-center text-center border border-white/20 shadow-sm hover:border-primary hover:bg-accent/80 transition-all duration-200">
-          <div className="w-14 h-14 rounded-full bg-border-gray flex items-center justify-center font-bold text-text-sub text-lg mb-3 overflow-hidden">
-            <img 
-              src={member.image} 
-              alt={member.name}
-              referrerPolicy="no-referrer"
-              className="w-full h-full object-cover"
-              onError={(e) => {
-                e.currentTarget.style.display = 'none';
-              }}
-            />
-            <span className="absolute">{initials}</span>
+          <div className="w-14 h-14 rounded-full bg-border-gray flex items-center justify-center font-bold text-text-sub text-lg mb-3 overflow-hidden relative">
+            {!imageError ? (
+              <img 
+                src={member.image} 
+                alt={member.name}
+                referrerPolicy="no-referrer"
+                className="w-full h-full object-cover"
+                onError={() => setImageError(true)}
+              />
+            ) : (
+              <span>{initials}</span>
+            )}
           </div>
           <CardContent className="p-0">
             <p className="text-[9px] font-bold text-primary/70 mb-1 font-mono uppercase tracking-tighter">PF: {member.pfNumber}</p>

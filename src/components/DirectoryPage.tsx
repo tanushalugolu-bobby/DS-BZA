@@ -8,7 +8,7 @@ import { exportToCSV, exportToXLSX } from '../lib/exportUtils';
 
 interface DirectoryPageProps {
   title: string;
-  subtitle: string;
+  subtitle?: string;
   type: 'staff' | 'dogs';
 }
 
@@ -47,7 +47,7 @@ export default function DirectoryPage({ title, subtitle, type }: DirectoryPagePr
       <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
         <div>
           <h1 className="text-3xl font-bold text-text-main pr-12 md:pr-0">{title}</h1>
-          <p className="text-sm text-text-sub mt-1 font-medium">{subtitle}</p>
+          {subtitle && <p className="text-sm text-text-sub mt-1 font-medium">{subtitle}</p>}
         </div>
         
         <div className="flex gap-2 w-full sm:w-auto">

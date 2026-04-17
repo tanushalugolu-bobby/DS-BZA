@@ -15,6 +15,7 @@ export default function MemberDetailsPage() {
   const [editedMember, setEditedMember] = useState<Member | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showExportOptions, setShowExportOptions] = useState(false);
+  const [imageError, setImageError] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleExport = (format: 'csv' | 'xlsx') => {
@@ -293,15 +294,18 @@ export default function MemberDetailsPage() {
               style={{ rotateX, rotateY, transformStyle: "preserve-3d" }}
               className="w-48 h-48 rounded-3xl bg-accent flex items-center justify-center text-5xl font-bold text-primary mb-6 overflow-hidden shadow-2xl relative group"
             >
-              <img 
-                src={member.image} 
-                alt={member.name}
-                referrerPolicy="no-referrer"
-                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                style={{ transform: "translateZ(20px)" }}
-                onError={(e) => { e.currentTarget.style.display = 'none'; }}
-              />
-              <span className="absolute" style={{ transform: "translateZ(10px)" }}>{initials}</span>
+              {!imageError ? (
+                <img 
+                  src={member.image} 
+                  alt={member.name}
+                  referrerPolicy="no-referrer"
+                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                  style={{ transform: "translateZ(20px)" }}
+                  onError={() => setImageError(true)}
+                />
+              ) : (
+                <span className="absolute" style={{ transform: "translateZ(10px)" }}>{initials}</span>
+              )}
             </motion.div>
             
             {isEditing && (

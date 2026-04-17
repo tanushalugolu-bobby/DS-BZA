@@ -28,8 +28,7 @@ export default function App() {
                   path="/staff" 
                   element={
                     <DirectoryPage 
-                      title="Staff Directory" 
-                      subtitle="Medical Personnel" 
+                      title="Staff Information" 
                       type="staff"
                     />
                   } 
