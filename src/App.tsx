@@ -15,7 +15,7 @@ import { DirectoryProvider } from './DirectoryContext';
 export default function App() {
   return (
     <DirectoryProvider>
-      <Router basename="/DS-BZA">
+      <Router basename="/">
         <div className="flex bg-transparent min-h-screen relative cursor-none md:cursor-auto">
           <CustomCursor />
           <LiveWallpaper />
